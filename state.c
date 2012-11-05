@@ -3,21 +3,18 @@
 
 #include "state.h"
 
-State* state(int (*init)(State*),
-             int (*deinit)(State*),
-             int (*redraw)(State*),
-             int (*keydown)(State*, SDL_Event*),
-             int (*keyup)(State*, SDL_Event*))
+State* state(initf init, deinitf deinit,
+             redrawf redraw, keydownf keydown, keyupf keyup)
 {
   State* state = (State*)malloc(sizeof(State));
 
-  state.data = NULL;
-  state.init = init;
-  state.deinit = deinit;
-  state.redraw = redraw;
-  state.keydown = keydown;
-  state.keyup = keyup;
-  state.invocables = NULL;
+  state->data = NULL;
+  state->init = init;
+  state->deinit = deinit;
+  state->redraw = redraw;
+  state->keydown = keydown;
+  state->keyup = keyup;
+  state->invocables = NULL;
 
   return state;
 }
@@ -30,7 +27,7 @@ void destate(State* state)
   free(state);
 }
 
-StateCons* statecons(State* state, const StateCons* list)
+StateCons* statecons(State* state, StateCons* list)
 {
   assert(state != NULL);
 
@@ -42,14 +39,34 @@ StateCons* statecons(State* state, const StateCons* list)
   return cons;
 }
 
+void statepush(State* state, StateCons* list)
+{
+  assert(state != NULL);
+
+  list = statecons(state, list);
+}
+
 StateCons* destatecons(StateCons* list)
 {
   assert(list != NULL);
 
   StateCons* parent = list->parent;
+    
   free(list);
 
   return parent;
+}
+
+StateCons* clear_statecons(StateCons* list)
+{
+  if(list != NULL) {
+    if(list->parent != NULL) {
+      return clear_statecons(destatecons(list));
+    } else {
+      return destatecons(list);
+    }
+  }
+  return list;
 }
 
 StateCons* add_invocable(State* invocable, State* state)
@@ -57,9 +74,14 @@ StateCons* add_invocable(State* invocable, State* state)
   assert(state != NULL);
   assert(invocable != NULL);
 
-  state->invocables = statecons(invocable, state->invocables);
+  statepush(invocable, state->invocables);
 
   return state->invocables;
+}
+
+void clear_invocables(State* state)
+{
+  state->invocables = clear_statecons(state->invocables);
 }
 
 StateCons* invoke_state(State* state, StateMan* stateman)
@@ -86,9 +108,9 @@ StateCons* devoke_current_state(StateMan* stateman)
   return stateman->states;
 }
 
-static StateMan stateman( SDL_Surface* screen)
+StateMan stateman(SDL_Surface* screen)
 {
-  static StateMan stm;
+  StateMan stm;
 
   stm.scrw = &screen->w;
   stm.scrh = &screen->h;
