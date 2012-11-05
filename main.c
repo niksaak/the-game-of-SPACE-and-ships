@@ -5,6 +5,7 @@
 #include <SDL/SDL_gfxPrimitives.h>
 #include <chipmunk/chipmunk.h>
 
+#include "engine/state.h"
 #include "main.h"
 
 const int screenW = 512;
