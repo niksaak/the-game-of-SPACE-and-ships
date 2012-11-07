@@ -52,8 +52,8 @@ typedef struct State {
 } State;
 
 // State basic constructor
-extern State* state(initf init, deinitf deinit,
-                    redrawf redraw, keydownf keydown, keyupf keyup);
+extern State* state(initf init, deinitf deinit, redrawf redraw,
+                    idlef idle, keydownf keydown, keyupf keyup);
 
 extern void destate(State* state);
 
@@ -82,9 +82,9 @@ extern StateCons* add_invocable(State* invocable, State* state);
 
 extern void clear_invocables(State* state);
 
-extern StateCons* invoke_state(State* state, StateMan* stateman);
+extern void invoke_state(State* state, StateMan* stateman);
 
-extern StateCons* devoke_state(State* state);
+extern void devoke_state(State* state);
 
 // State manager basic constructor
 extern StateMan stateman(SDL_Surface* screen);

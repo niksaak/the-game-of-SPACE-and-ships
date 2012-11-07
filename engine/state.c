@@ -4,6 +4,7 @@
 
 #include <SDL2/SDL.h>
 
+#include "system.h"
 #include "state.h"
 
 State* state(initf init, deinitf deinit, redrawf redraw,
@@ -140,15 +141,15 @@ void do_state(StateMan* stateman)
 
   while(!stt->devoke) {
     if(SDL_PollEvent(&event)) {
-      switch(event->type) {
+      switch(event.type) {
       case SDL_KEYDOWN:
         if(stt->keydown != NULL) {
-          stt->keydown(stt, event);
+          stt->keydown(stt, &event);
         }
         break;
       case SDL_KEYUP:
         if(stt->keyup != NULL) {
-          stt->keyup(stt, event);
+          stt->keyup(stt, &event);
         }
         break;
       default:
@@ -162,14 +163,14 @@ void do_state(StateMan* stateman)
     if(stt->redraw != NULL) {
       stt->redraw(stt);
     } else {
-      fprintf("\nERROR: state have no drawing function.\n");
+      fprintf(stderr, "\nERROR: state have no drawing function.\n");
       crash();
     }
 
     SDL_Delay(16); // TODO normal framerate thingy
   }
 
-  if(stt.deinit != NULL) {
+  if(stt->deinit != NULL) {
     stt->deinit(stt);
   }
 
