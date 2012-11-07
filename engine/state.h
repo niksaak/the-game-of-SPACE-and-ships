@@ -32,8 +32,6 @@ typedef struct DataCons {
   struct DataCons* rest;
 } DataCons;
 
-typedef struct BoolCons {
-
 typedef void (*initf)(struct State*);
 typedef void (*deinitf)(struct State*);
 typedef void (*redrawf)(struct State*);
