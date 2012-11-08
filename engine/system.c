@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <stdbool.h>
 #include <assert.h>
 
@@ -16,6 +17,22 @@ void crash()
 void errorprint_SDL()
 {
   fprintf(stderr, "ERROR: %s\n", SDL_GetError());
+}
+
+bool check_malloc(const void* ptr, const char* errorstring, bool crash)
+{
+  if(ptr == NULL) {
+    fprintf(stderr, errorstring);
+    if(crash) {
+      crash();
+    } else {
+      return false;
+    }
+  } else {
+    return true;
+  }
+  
+  return false;
 }
 
 void deinit() {

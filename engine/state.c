@@ -11,7 +11,8 @@ State* state(initf init, deinitf deinit, redrawf redraw,
              idlef idle, keydownf keydown, keyupf keyup)
 {
   State* state = (State*)malloc(sizeof(State));
-
+  check_malloc(state, "ERROR: state allocation failed.", true);
+  
   state->data = NULL;
   state->invocables = NULL;
   state->init = init;
@@ -38,6 +39,7 @@ StateCons* statecons(State* state, StateCons* list)
   assert(state != NULL);
 
   StateCons* cons = (StateCons*)malloc(sizeof(StateCons));
+  check_malloc(cons, "ERROR: statecons allocation failed", true);
 
   cons->this = state;
   cons->parent = list;
@@ -71,6 +73,7 @@ DataCons* datacons(void* data, DataCons* list)
   assert(data != NULL);
 
   DataCons* cons = (DataCons*)malloc(sizeof(DataCons));
+  check_malloc(cons, "ERROR: datacons allocation failed.", true);
 
   cons->first = data;
   cons->rest = list;
