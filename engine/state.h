@@ -1,6 +1,5 @@
 #pragma once
 
-#include <stdlib.h>
 #include <stdbool.h>
 
 #include <SDL2/SDL.h>
@@ -12,7 +11,7 @@
 typedef struct StateMan {
   bool running;
   SDL_Window* window;
-  struct {
+  struct Renderer {
     Uint8 type;
     union {
       SDL_Renderer* sdl_renderer;
@@ -32,12 +31,12 @@ typedef struct DataCons {
   struct DataCons* rest;
 } DataCons;
 
-typedef void (*initf)(struct State*);
-typedef void (*deinitf)(struct State*);
-typedef void (*redrawf)(struct State*);
-typedef void (*idlef)(struct State*);
-typedef void (*keydownf)(struct State*, SDL_Event*);
-typedef void (*keyupf)(struct State*, SDL_Event*);
+typedef void (*initf)(struct State* current);
+typedef void (*deinitf)(struct State* current);
+typedef void (*redrawf)(struct State* current);
+typedef void (*idlef)(struct State* current);
+typedef void (*keydownf)(struct State* current, SDL_Event* event);
+typedef void (*keyupf)(struct State* current, SDL_Event* event);
 
 typedef struct State {
   struct DataCons* data;

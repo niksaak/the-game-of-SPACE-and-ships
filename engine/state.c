@@ -4,8 +4,8 @@
 
 #include <SDL2/SDL.h>
 
-#include "system.h"
 #include "state.h"
+#include "system.h"
 
 State* state(initf init, deinitf deinit, redrawf redraw,
              idlef idle, keydownf keydown, keyupf keyup)
