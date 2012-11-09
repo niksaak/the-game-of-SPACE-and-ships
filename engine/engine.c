@@ -65,3 +65,9 @@ void init(StateMan* stateman,
   create_glcontext_or_renderer(stateman);
   printf("OK.\n");
 }
+
+void deinit() {
+  printf("Deinitializing SDL: ");
+  SDL_Quit();
+  printf("OK.\n");
+}

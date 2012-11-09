@@ -34,9 +34,3 @@ bool check_malloc(const void* ptr, const char* errorstring, bool crash_on_fail)
   
   return false;
 }
-
-void deinit() {
-  printf("Deinitializing SDL: ");
-  SDL_Quit();
-  printf("OK.\n");
-}

@@ -10,5 +10,3 @@ extern void errorprint_SDL();
 
 extern bool check_malloc(const void* ptr, const char* errorstring,
                          bool crash_on_fail);
-
-extern void deinit();
