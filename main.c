@@ -1,144 +1,190 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <stdbool.h>
 
-#include <SDL/SDL.h>
-#include <SDL/SDL_gfxPrimitives.h>
-#include <chipmunk/chipmunk.h>
+#include <SDL2/SDL.h>
 
-#include "engine/state.h"
-#include "main.h"
-
-const int screenW = 512;
-const int screenH = 512;
-const int screenBPP = 32;
-const Uint32 DefaultColor = 0xFFFFFFFF;
-
-SDL_Surface* screen = NULL;
-bool running = false;
-
-//// System /////
-
-void crash()
-{
-  fprintf(stderr, "\nCrashing mindlessly...\n");
-  exit(1);
-}
-
-void init()
-{
-  printf("\nInitializing SDL: ");
-  if(SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO) != 0) {
-    fprintf(stderr, "\nError while initializing SDL: %s\n", SDL_GetError());
-    crash();
-  }
-  printf("OK.\n");
-
-  printf("Setting up screen: ");
-  screen = SDL_SetVideoMode(screenW, screenH, screenBPP,
-                            SDL_SWSURFACE | SDL_ANYFORMAT | SDL_HWPALETTE);
-  if(screen == NULL) {
-    fprintf(stderr, "Error while setting up screen: %s\n", SDL_GetError());
-    crash();
-  }
-  SDL_SetClipRect(screen, NULL);
-  printf("OK (%ix%i, %ibpp).\n",
-         screen->w, screen->h, screen->format->BitsPerPixel);
-
-  SDL_WM_SetCaption("gemu", "gemu");
-  SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY,
-                      SDL_DEFAULT_REPEAT_INTERVAL);
-  printf("Init OK\n");
-}
-
-void deinit()
-{
-  printf("Deinitializing SDL: ");
-  SDL_Quit();
-  printf("OK\n");
-}
+#include "engine/engine.h"
+#include "images.h"
 
 //// Helpers ////
 
-static SDL_Point point(Uint16 x, Uint16 y)
+SDL_Surface* get_image(void* img, int size)
 {
-  static SDL_Point point;
-  point.x = x;
-  point.y = y;
-  return point;
+  SDL_Surface* pic;
+
+  pic = SDL_LoadBMP_RW(SDL_RWFromConstMem(img, size), 1);
+  
+  return pic;
 }
 
-static SDL_Point toSDLxy(cpVect cpv, const SDL_Surface* surface)
-{
-  static SDL_Point point;
-  point.x = cpv.x + surface->w / 2;
-  point.y = -cpv.y + surface->h / 2;
+typedef struct Image {
+  SDL_Texture* tex;
+  SDL_Rect rect;
+} Image;
 
-  if(point.x < 0 || point.x >= surface->w) {
-    point.x = 0;
+static Image
+texify(SDL_Surface* surface, SDL_Renderer* renderer, SDL_Window* win)
+{
+  static Image img;
+  SDL_DisplayMode mode;
+  SDL_Texture* texture;
+  
+  printf("creating texture from image...\n");
+  texture = SDL_CreateTextureFromSurface(renderer, surface);
+  printf("done!\n");
+
+  SDL_GetWindowDisplayMode(win, &mode);
+  img.tex = texture;
+  img.rect.x = mode.w / 2 - surface->w / 2;
+  img.rect.y = mode.h / 2 - surface->h / 2;
+  img.rect.w = surface->w;
+  img.rect.h = surface->h;
+
+  return img;
+}
+
+//// States ////
+
+////-- state1
+
+int st1_init(State* state)
+{
+  Image* img = NULL;
+  SDL_Surface* surface;
+
+  img = (Image*)malloc_or_die(sizeof(Image),
+                              "Unable to alloc struct for image\n");
+  printf("trying to load image...\n");
+  surface = get_image(testpic_bmp, testpic_bmp_len);
+  if(img == NULL) {
+    printf("nyoo, can't load this cuute image /(0o0)\\\n");
+    crash();
   }
-  if(point.y < 0 || point.y >= surface->h) {
-    point.y = 0;
+  printf("loaded image \\(^o^)/\n");
+
+  *img = texify(surface, state->stateman->renderer.sdl_renderer,
+                state->stateman->window);
+
+  datapush(img, &state->data);
+
+  free(surface);
+  return 0;
+}
+
+int st1_deinit(State* state)
+{
+  free(state->data->first);
+  datapop(&state->data);
+
+  return 0;
+}
+
+int st1_redraw(State* state) {
+  static Image* img;
+  static SDL_Renderer* renderer;
+
+  img = (Image*)state->data->first;
+  renderer = state->stateman->renderer.sdl_renderer;
+  
+  SDL_RenderClear(renderer);
+  SDL_RenderCopy(renderer, img->tex, NULL, &img->rect);
+  SDL_RenderPresent(renderer);
+
+  return 0;
+}
+
+int st1_keydown(State* state, SDL_Event* event)
+{
+  if(event->key.keysym.sym == SDLK_c) {
+    printf("\nQuitting beautifully,");
+    crash();
+  } else if(event->key.keysym.sym == SDLK_q) {
+    printf("Quitting state.\n");
+    devoke_state(state);
+  } else if(event->key.keysym.sym == SDLK_RETURN) {
+    printf("Invoking state2 hopefully...\n");
+    invoke_state(state->invocables->this, state->stateman);
   }
 
-  return point;
+  return 0;
 }
 
-cpFloat toDegrees(cpFloat radians)
+////-- state2:
+
+int st2_init(State* state)
 {
-  return radians * (180 / M_PI);
-}
+  Image* img = NULL;
+  SDL_Surface* surface;
 
-//// Ship ////
-
-Ship* cpSpaceAddShip(cpFloat length, cpFloat width, cpFloat mass,
-		     cpFloat accel, cpFloat turn, cpSpace* space)
-{
-  cpVect verts[3];
-  verts[0] = cpv(length / 2, 0);
-  verts[1] = cpv(-(length / 2), width / 2);
-  verts[2] = cpv(-(length / 2), -(width / 2));
-
-  cpBody* body = cpBodyNew(mass, cpMomentForPoly(mass, 3, verts, cpvzero));
-  cpSpaceAddBody(space, body);
-
-  cpShape* shape = cpPolyShapeNew(body, 3, verts, cpvzero);
-  cpSpaceAddShape(space, shape);
-
-  Ship* ship = (Ship*)malloc(sizeof(Ship));
-  ship->body = body;
-  ship->shape = shape;
-  ship->accel = accel;
-  ship->turn = turn;
-
-  return ship;
-}
-
-//// Drawing ////
-
-int drawShip(Ship* ship, SDL_Surface* surface)
-{
-  int i;
-  SDL_Point pts[3];
-  for(i = 0; i < 3; i++) {
-    pts[i] = toSDLxy(cpBodyLocal2World(ship->body,
-				       cpPolyShapeGetVert(ship->shape, i)),
-		     surface);
+  img = (Image*)malloc_or_die(sizeof(Image),
+                              "Unable to alloc struct for image\n");
+  printf("trying to load image...\n");
+  surface = get_image(testpic_2_bmp, testpic_2_bmp_len);
+  if(img == NULL) {
+    printf("waaaaah, somethingwrong with secooond image /(*0*)\\\n");
+    crash();
   }
+  printf("loaded image \\(^0^)/\n");
 
-  return aatrigonColor(surface,
-                       pts[0].x, pts[0].y,
-                       pts[1].x, pts[1].y,
-                       pts[2].x, pts[2].y,
-                       DefaultColor);
+  *img = texify(surface, state->stateman->renderer.sdl_renderer,
+                state->stateman->window);
+
+  datapush(img, &state->data);
+
+  free(surface);
+  return 0;
 }
 
-//// Main /////
+int st2_deinit(State* state)
+{
+  free(state->data->first);
+  datapop(&state->data);
+
+  return 0;
+}
+
+int st2_redraw(State* state)
+{
+  static Image* img;
+  static SDL_Renderer* renderer;
+
+  img = (Image*)state->data->first;
+  renderer = state->stateman->renderer.sdl_renderer;
+
+  SDL_RenderClear(renderer);
+  SDL_RenderCopy(renderer, img->tex, NULL, &img->rect);
+  SDL_RenderPresent(renderer);
+
+  return 0;
+}
+
+int st2_keydown(State* state, SDL_Event* event)
+{
+  devoke_state(state);
+  return 0;
+}
+
+//// Main ////
 
 int main(int argc, char** argv)
 {
-  init();
-  running = true;
+  StateMan sttmanager = stateman();
+  State* state1 = NULL;
+  State* state2 = NULL;
+
+  state1 = state(&st1_init, &st1_deinit, &st1_redraw,
+                 NULL, &st1_keydown, NULL);
+  state2 = state(&st2_init, &st2_deinit, &st2_redraw,
+                 NULL, &st2_keydown, NULL);
+  add_invocable(state2, state1);
+
+  printf("\nHAI SEKAI! SHYAMEIMARU!\n");
+  init(&sttmanager, "TEST", 512, 512, false);
+
+  invoke_state(state1, &sttmanager);
 
   deinit();
+
   return 0;
 }
