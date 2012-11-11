@@ -10,7 +10,7 @@ ENGINE_OBJECTS := $(ENGINE_SOURCES:.c=.o)
 SDL_CFLAGS := $(shell sdl2-config --cflags)
 SDL_LDFLAGS_STATIC := $(shell sdl2-config --static-libs)
 CFLAGS += $(SDL_CFLAGS) -Wall -O0 -std=c11
-LDFLAGS += -lm -lchipmunk $(SDL_LDFLAGS_STATIC)
+LDFLAGS += $(SDL_LDFLAGS_STATIC)
 
 .PHONY: all engine clean
 .SUFFIXES: .bmp
@@ -29,6 +29,6 @@ $(ENGINE_OBJECTS):
 clean:
 	@- mv -v $(NAME) $(NAME).old ; \
 	   $(RM) -v $(OBJECTS) ; \
-	   $(RM) -v $(BITMAP_OBJECTS) $(BITMAP_INCLUDES)
+	   $(RM) -v $(BITMAP_OBJECTS) $(BITMAP_INCLUDES) ; \
 	   $(MAKE) -C engine/ clean
 
