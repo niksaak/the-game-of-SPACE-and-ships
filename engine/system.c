@@ -19,10 +19,10 @@ void errorprint_SDL()
   fprintf(stderr, "ERROR: %s\n", SDL_GetError());
 }
 
-bool check_malloc(const void* ptr, const char* errorstring, bool crash_on_fail)
+bool check_malloc(const void* ptr, const char* errstr, bool crash_on_fail)
 {
   if(ptr == NULL) {
-    fprintf(stderr, errorstring);
+    fprintf(stderr, errstr);
     if(crash_on_fail) {
       crash();
     } else {
@@ -33,4 +33,13 @@ bool check_malloc(const void* ptr, const char* errorstring, bool crash_on_fail)
   }
   
   return false;
+}
+
+void* malloc_or_die(size_t size, const char* errstr)
+{
+  void* ptr = malloc(size);
+
+  check_malloc(ptr, errstr, true);
+
+  return ptr;
 }

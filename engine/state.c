@@ -7,8 +7,8 @@
 #include "state.h"
 #include "system.h"
 
-State* state(initf init, deinitf deinit, redrawf redraw,
-             idlef idle, keydownf keydown, keyupf keyup)
+State* state(StateF init, StateF deinit, StateF redraw,
+             StateF idle, StateEF keydown, StateEF keyup)
 {
   State* state = (State*)malloc(sizeof(State));
   check_malloc(state, "ERROR: state allocation failed.", true);
@@ -22,6 +22,7 @@ State* state(initf init, deinitf deinit, redrawf redraw,
   state->keydown = keydown;
   state->keyup = keyup;
   state->devoke = false;
+  state->stateman = NULL;
 
   return state;
 }
@@ -114,7 +115,7 @@ StateCons* clear_statecons(StateCons* list)
   return list;
 }
 
-StateCons* add_invocable_state(State* invocable, State* state)
+StateCons* add_invocable(State* invocable, State* state)
 {
   assert(state != NULL);
   assert(invocable != NULL);
@@ -166,7 +167,7 @@ void do_state(StateMan* stateman)
     if(stt->redraw != NULL) {
       stt->redraw(stt);
     } else {
-      fprintf(stderr, "\nERROR: state have no drawing function.\n");
+      fprintf(stderr, "\nERROR: state has no drawing function.\n");
       crash();
     }
 
@@ -185,6 +186,10 @@ void invoke_state(State* state, StateMan* stateman)
   assert(state != NULL);
   assert(stateman != NULL);
 
+  if(state->stateman == NULL) {
+    state->stateman = stateman;
+  }
+
   statepush(state, &stateman->states);
   do_state(stateman);
   statepop(&stateman->states);
@@ -195,7 +200,7 @@ void devoke_state(State* state)
   state->devoke = true;
 }
 
-StateMan stateman(SDL_Surface* screen)
+StateMan stateman()
 {
   StateMan stm;
 

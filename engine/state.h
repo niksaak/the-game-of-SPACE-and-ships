@@ -31,28 +31,25 @@ typedef struct DataCons {
   struct DataCons* rest;
 } DataCons;
 
-typedef void (*initf)(struct State* current);
-typedef void (*deinitf)(struct State* current);
-typedef void (*redrawf)(struct State* current);
-typedef void (*idlef)(struct State* current);
-typedef void (*keydownf)(struct State* current, SDL_Event* event);
-typedef void (*keyupf)(struct State* current, SDL_Event* event);
+typedef int (*StateF)(struct State*);
+typedef int (*StateEF)(struct State*, SDL_Event*);
 
 typedef struct State {
   struct DataCons* data;
   struct StateCons* invocables;
-  initf init;
-  deinitf deinit;
-  redrawf redraw;
-  idlef idle;
-  keydownf keydown;
-  keyupf keyup;
+  StateF init;
+  StateF deinit;
+  StateF redraw;
+  StateF idle;
+  StateEF keydown;
+  StateEF keyup;
   bool devoke;
+  struct StateMan* stateman;
 } State;
 
-// State basic constructor
-extern State* state(initf init, deinitf deinit, redrawf redraw,
-                    idlef idle, keydownf keydown, keyupf keyup);
+// State
+extern State* state(StateF init, StateF deinit, StateF redraw,
+                    StateF idle, StateEF keydown, StateEF keyup);
 
 extern void destate(State* state);
 
@@ -85,5 +82,5 @@ extern void invoke_state(State* state, StateMan* stateman);
 
 extern void devoke_state(State* state);
 
-// State manager basic constructor
-extern StateMan stateman(SDL_Surface* screen);
+// State manager
+extern StateMan stateman();
