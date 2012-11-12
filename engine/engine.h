@@ -1,5 +1,6 @@
 #pragma once
 
+#include "system.h"
 #include "state.h"
 
 extern void init(struct StateMan* stateman,
